@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\UniConnect.Api.props" />
+</Project>
