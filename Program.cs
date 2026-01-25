@@ -16,6 +16,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUsersService, UsersService>();
+builder.Services.AddScoped<IGuidanceRequestRepository, GuidanceRequestRepository>();
+builder.Services.AddScoped<IGuidanceRequestService, GuidanceRequestService>();
 
 
 var app = builder.Build();
