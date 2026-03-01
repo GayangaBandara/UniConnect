@@ -4,6 +4,9 @@ export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean>;
 }
 
+// Helper to safely check if we're on client side
+const isClient = () => typeof window !== 'undefined';
+
 class HttpClient {
   private baseUrl: string;
 
@@ -28,10 +31,12 @@ class HttpClient {
       'Content-Type': 'application/json',
     };
 
-    // Add auth token if available
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    // Add auth token if available (only on client)
+    if (isClient()) {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
     }
 
     return headers;
@@ -52,10 +57,12 @@ class HttpClient {
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Handle unauthorized - redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        // Handle unauthorized - redirect to login (only on client)
+        if (isClient()) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        }
       }
       throw new Error(`HTTP Error: ${response.status}`);
     }
