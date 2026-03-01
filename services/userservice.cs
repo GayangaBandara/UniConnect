@@ -28,6 +28,12 @@ public class UsersService : IUsersService
         return user == null ? null : ToResponse(user);
     }
 
+    public async Task<UserResponseDto?> GetByEmailAsync(string email)
+    {
+        var user = await _repo.GetByEmailAsync(email);
+        return user == null ? null : ToResponse(user);
+    }
+
     public async Task<UserResponseDto?> CreateAsync(UserCreateDto dto)
     {
         var exists = await _repo.GetByEmailAsync(dto.Email.Trim().ToLower());

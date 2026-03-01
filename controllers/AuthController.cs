@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using UniConnect.Api.DTOs.Auth;
+using UniConnect.Api.Dtos.User;
 using UniConnect.Api.Models;
+using UniConnect.Api.Repositories.Interfaces;
 using UniConnect.Api.Services;
 using UniConnect.Api.Services.Interfaces;
 
@@ -12,6 +14,7 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authService;
     private readonly IUsersService _usersService;
+    private readonly IUserRepository _userRepository;
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly ILogger<AuthController> _logger;
     private readonly IConfiguration _configuration;
@@ -19,12 +22,14 @@ public class AuthController : ControllerBase
     public AuthController(
         IAuthenticationService authService,
         IUsersService usersService,
+        IUserRepository userRepository,
         IRefreshTokenService refreshTokenService,
         ILogger<AuthController> logger,
         IConfiguration configuration)
     {
         _authService = authService;
         _usersService = usersService;
+        _userRepository = userRepository;
         _refreshTokenService = refreshTokenService;
         _logger = logger;
         _configuration = configuration;
@@ -61,28 +66,33 @@ public class AuthController : ControllerBase
 
         try
         {
+            // Check if user already exists
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email.Trim().ToLower());
+            if (existingUser != null)
+            {
+                return BadRequest(new { success = false, message = "Email already exists" });
+            }
+
             // Create user with hashed password
             var (hash, salt) = _authService.HashPassword(request.Password);
 
-            var userDto = new UserCreateDto
+            var user = new User
             {
-                FullName = request.FullName,
-                Email = request.Email,
-                Password = request.Password,
-                Role = request.Role
+                FullName = request.FullName.Trim(),
+                Email = request.Email.Trim().ToLower(),
+                PasswordHash = hash,
+                PasswordSalt = salt,
+                Role = request.Role.Trim().ToLower(),
+                CreatedAt = DateTime.UtcNow
             };
 
-            var user = await _usersService.CreateAsync(userDto);
-
-            // Update password hash and salt (since UserService hashes it differently)
-            user.PasswordHash = hash;
-            user.PasswordSalt = salt;
+            var createdUser = await _userRepository.CreateAsync(user);
 
             // Generate tokens
-            var accessToken = _authService.GenerateAccessToken(user);
-            var refreshToken = await _refreshTokenService.CreateRefreshTokenAsync(user.Id);
+            var accessToken = _authService.GenerateAccessToken(createdUser);
+            var refreshToken = await _refreshTokenService.CreateRefreshTokenAsync(createdUser.Id);
 
-            _logger.LogInformation("User registered: {Email}, Role: {Role}", user.Email, user.Role);
+            _logger.LogInformation("User registered: {Email}, Role: {Role}", createdUser.Email, createdUser.Role);
 
             var expirationMinutes = int.Parse(_configuration["JwtSettings:ExpirationMinutes"] ?? "30");
 
@@ -90,14 +100,14 @@ public class AuthController : ControllerBase
             {
                 Success = true,
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
+                RefreshToken = refreshToken.Token,
                 ExpiresIn = expirationMinutes,
                 User = new UserAuthDto
                 {
-                    Id = user.Id,
-                    FullName = user.FullName,
-                    Email = user.Email,
-                    Role = user.Role
+                    Id = createdUser.Id,
+                    FullName = createdUser.FullName,
+                    Email = createdUser.Email,
+                    Role = createdUser.Role
                 },
                 Message = "Registration successful"
             });
@@ -128,7 +138,7 @@ public class AuthController : ControllerBase
         try
         {
             // Find user by email
-            var user = await _usersService.GetByEmailAsync(request.Email);
+            var user = await _userRepository.GetByEmailAsync(request.Email);
 
             if (user == null)
             {
@@ -145,7 +155,7 @@ public class AuthController : ControllerBase
 
             // Generate tokens
             var accessToken = _authService.GenerateAccessToken(user);
-            var refreshToken = _authService.GenerateRefreshToken();
+            var refreshToken = await _refreshTokenService.CreateRefreshTokenAsync(user.Id);
 
             _logger.LogInformation("User logged in: {Email}", user.Email);
 
@@ -155,7 +165,7 @@ public class AuthController : ControllerBase
             {
                 Success = true,
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
+                RefreshToken = refreshToken.Token,
                 ExpiresIn = expirationMinutes,
                 User = new UserAuthDto
                 {
@@ -197,7 +207,7 @@ public class AuthController : ControllerBase
             }
 
             // Get user
-            var user = await _usersService.GetByIdAsync(refreshToken.UserId);
+            var user = await _userRepository.GetByIdAsync(refreshToken.UserId);
 
             if (user == null)
             {
