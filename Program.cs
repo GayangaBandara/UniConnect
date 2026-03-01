@@ -18,6 +18,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUsersService, UsersService>();
 builder.Services.AddScoped<IGuidanceRequestRepository, GuidanceRequestRepository>();
 builder.Services.AddScoped<IGuidanceRequestService, GuidanceRequestService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 
 var app = builder.Build();

@@ -12,17 +12,20 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authService;
     private readonly IUsersService _usersService;
+    private readonly IRefreshTokenService _refreshTokenService;
     private readonly ILogger<AuthController> _logger;
     private readonly IConfiguration _configuration;
 
     public AuthController(
         IAuthenticationService authService,
         IUsersService usersService,
+        IRefreshTokenService refreshTokenService,
         ILogger<AuthController> logger,
         IConfiguration configuration)
     {
         _authService = authService;
         _usersService = usersService;
+        _refreshTokenService = refreshTokenService;
         _logger = logger;
         _configuration = configuration;
     }
@@ -77,7 +80,7 @@ public class AuthController : ControllerBase
 
             // Generate tokens
             var accessToken = _authService.GenerateAccessToken(user);
-            var refreshToken = _authService.GenerateRefreshToken();
+            var refreshToken = await _refreshTokenService.CreateRefreshTokenAsync(user.Id);
 
             _logger.LogInformation("User registered: {Email}, Role: {Role}", user.Email, user.Role);
 
@@ -184,11 +187,47 @@ public class AuthController : ControllerBase
 
         try
         {
-            // In a production app, you would validate the refresh token against a database
-            // For now, this is a simplified implementation
-            // TODO: Implement refresh token validation and storage
+            // Validate refresh token
+            var refreshToken = await _refreshTokenService.ValidateAndGetAsync(request.RefreshToken);
 
-            return BadRequest(new { success = false, message = "Refresh token feature coming soon" });
+            if (refreshToken == null)
+            {
+                _logger.LogWarning("Invalid refresh token attempted");
+                return Unauthorized(new { success = false, message = "Invalid or expired refresh token" });
+            }
+
+            // Get user
+            var user = await _usersService.GetByIdAsync(refreshToken.UserId);
+
+            if (user == null)
+            {
+                _logger.LogWarning("User not found for refresh token: {UserId}", refreshToken.UserId);
+                return Unauthorized(new { success = false, message = "User not found" });
+            }
+
+            // Generate new access token
+            var newAccessToken = _authService.GenerateAccessToken(user);
+            var newRefreshToken = await _refreshTokenService.CreateRefreshTokenAsync(user.Id);
+
+            _logger.LogInformation("Token refreshed for user: {Email}", user.Email);
+
+            var expirationMinutes = int.Parse(_configuration["JwtSettings:ExpirationMinutes"] ?? "30");
+
+            return Ok(new LoginResponseDto
+            {
+                Success = true,
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken.Token,
+                ExpiresIn = expirationMinutes,
+                User = new UserAuthDto
+                {
+                    Id = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    Role = user.Role
+                },
+                Message = "Token refreshed successfully"
+            });
         }
         catch (Exception ex)
         {

@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<GuidanceRequest> GuidanceRequests => Set<GuidanceRequest>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,5 +30,11 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(r => r.MentorId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RefreshToken>()
+            .HasOne(rt => rt.User)
+            .WithMany()
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
