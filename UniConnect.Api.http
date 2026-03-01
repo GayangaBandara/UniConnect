@@ -1,6 +1,0 @@
-@UniConnect.Api_HostAddress = http://localhost:5140
-
-GET {{UniConnect.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
