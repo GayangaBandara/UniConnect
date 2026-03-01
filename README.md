@@ -240,76 +240,8 @@ cd frontend
 npm run dev
 ```
 
-### Option 2: Using Docker (Optional)
-Create a docker-compose file to run both services with a containerized SQL Server.
-
-## 📝 Database Schema
-
-### Users Table
-- `Id` (PK)
-- `FullName`
-- `Email` (Unique)
-- `PasswordHash`
-- `PasswordSalt`
-- `Role` (student/mentor/admin)
-- `Expertise` (for mentors)
-- `Bio`
-- `IsAvailable`
-- `CreatedAt`
-
-### GuidanceRequests Table
-- `Id` (PK)
-- `Title`
-- `Description`
-- `Status` (pending/accepted/closed)
-- `StudentId` (FK)
-- `MentorId` (FK, nullable)
-- `CreatedAt`
-
-### RefreshTokens Table
-- `Id` (PK)
-- `UserId` (FK)
-- `Token`
-- `ExpiryDate`
-
-## 🔒 Security Features
-
-- JWT-based authentication
-- Secure password hashing with salt
-- Refresh token rotation
-- SQL injection prevention via EF Core
-- CORS configuration
-- Role-based authorization
-
-## 🐛 Troubleshooting
-
-### Backend Issues
-- **Database connection error**: Check `appsettings.json` connection string
-- **Port already in use**: Change port in `launchSettings.json`
-- **Migration errors**: Run `dotnet ef migrations remove` then reapply migrations
-
-### Frontend Issues
-- **API connection errors**: Verify backend is running and check `src/constants/api.ts`
-- **Port 3000 in use**: Run `npm run dev -- -p 3001`
-- **Module not found**: Run `npm install` again
-
-## 📚 Additional Resources
-
-- [ASP.NET Core Documentation](https://learn.microsoft.com/en-us/dotnet/core/)
-- [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/)
-- [Next.js Documentation](https://nextjs.org/docs)
-- [JWT Authentication](https://jwt.io)
-- [Tailwind CSS](https://tailwindcss.com)
-
 ## 📄 License
 
-This project is part of a .NET course and may be subject to specific licensing terms.
-
-## 👥 Development Team
-
-Built with ❤️ for the UniConnect Platform
+MIT License © [GayangaBandara](https://github.com/GayangaBandara)
 
 ---
-
-**Last Updated**: March 2026
-**Version**: 0.1.0
