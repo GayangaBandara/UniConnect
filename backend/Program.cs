@@ -11,6 +11,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to use a non-privileged port
 builder.WebHost.UseUrls("http://localhost:8080");
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -33,6 +45,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Use CORS
+app.UseCors("AllowFrontend");
 
 app.MapControllers();
 app.MapGet("/", () => "uniconnect api running ✅ go to /swagger");
